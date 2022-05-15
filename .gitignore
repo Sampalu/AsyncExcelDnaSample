@@ -1,0 +1,12 @@
+*.user
+*.suo
+*.[Cc]ache
+obj/
+[Bb]in
+[Dd]ebug*/
+[Rr]elease*/
+.vs/
+TestResults/
+
+#Project files
+[Bb]uild/
