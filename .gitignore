@@ -6,7 +6,8 @@ obj/
 [Dd]ebug*/
 [Rr]elease*/
 .vs/
-TestResults/
+
+ExcelDNARTD2-AddIn.dna
 
 #Project files
 [Bb]uild/
