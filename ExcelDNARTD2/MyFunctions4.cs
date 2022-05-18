@@ -68,7 +68,17 @@ namespace RTD.Excel
             }
         }
 
-        
+        [ExcelFunction(Name = "TesteSumPageSizesAsync")]
+        public static object TesteSumPageSizesAsync([ExcelArgument(Name = "RTD")] string rtd)
+        {
+            object asyncResult = LimitedConcurrencyAsync.AsyncFunctions.SumPageSizesAsync(rtd);
+
+            // Check the asyncResult to see if we're still busy
+            if (asyncResult.Equals(ExcelError.ExcelErrorNA))
+                return "Application started";
+
+            return asyncResult;
+        }
 
         static async Task<object> RunBatch2(string deck_id)
         {

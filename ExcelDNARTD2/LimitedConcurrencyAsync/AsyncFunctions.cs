@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using RTD.Excel.Model;
+using System.Collections.Generic;
 
 namespace LimitedConcurrencyAsync
 {
@@ -85,6 +86,78 @@ namespace LimitedConcurrencyAsync
             });
             
             return result;
+        }
+
+        public static object SumPageSizesAsync(string param)
+        {
+            string callerFunctionName = "SumPageSizesAsync";
+            object callerParameters = new object[] { param }; // This need not be an array if it's just a single parameter
+
+            //CancellationTokenSource cts = new CancellationTokenSource();
+
+            var result = AsyncTaskUtil.RunAsTaskWithCancellation(callerFunctionName, callerParameters, _fourThreadFactory, (token) =>
+            {
+                string responseString = string.Empty;
+
+                HttpClient httpClient = new HttpClient
+                {
+                    MaxResponseContentBufferSize = 1_000_000
+                };
+
+                IEnumerable<string> urlList = new string[]
+                {
+                    "https://docs.microsoft.com",
+                    "https://docs.microsoft.com/aspnet/core",
+                    "https://docs.microsoft.com/azure",
+                    "https://docs.microsoft.com/azure/devops",
+                    "https://docs.microsoft.com/dotnet",
+                    "https://docs.microsoft.com/dynamics365",
+                    "https://docs.microsoft.com/education",
+                    "https://docs.microsoft.com/enterprise-mobility-security",
+                    "https://docs.microsoft.com/gaming",
+                    "https://docs.microsoft.com/graph",
+                    "https://docs.microsoft.com/microsoft-365",
+                    "https://docs.microsoft.com/office",
+                    "https://docs.microsoft.com/powershell",
+                    "https://docs.microsoft.com/sql",
+                    "https://docs.microsoft.com/surface",
+                    "https://docs.microsoft.com/system-center",
+                    "https://docs.microsoft.com/visualstudio",
+                    "https://docs.microsoft.com/windows",
+                    "https://docs.microsoft.com/xamarin"
+                };
+
+                int total = 0;
+                foreach (string url in urlList)
+                {
+                    var contentLengthString = ProcessUrl(url, httpClient, token);
+                    if (!Int32.TryParse(contentLengthString.ToString(), out int contentLength))
+                        return contentLengthString;
+                    total += contentLength;
+                }                
+
+                return total;
+            });
+
+            return result;
+        }
+
+        private static object ProcessUrl(string url, HttpClient client, CancellationToken token)
+        {
+            try
+            {
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+                HttpResponseMessage response = client.GetAsync(url, token).Result;
+                byte[] content = response.Content.ReadAsByteArrayAsync().Result;
+                Console.WriteLine($"{url,-60} {content.Length,10:#,#}");
+
+                return content.Length;
+            }
+            catch (AggregateException)
+            {
+                return "Tasks cancelled: timed out.";
+            }
         }
     }
 }

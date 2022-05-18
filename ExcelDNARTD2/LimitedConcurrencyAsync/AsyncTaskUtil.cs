@@ -54,6 +54,7 @@ namespace ExcelDna.Utils
                 : this(task)
             {
                 _cts = cts;
+                _cts.CancelAfter(240000);
             }
 
             public IDisposable Subscribe(IExcelObserver observer)
