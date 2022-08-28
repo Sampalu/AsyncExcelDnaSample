@@ -12,6 +12,7 @@ using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using RTD.Excel.Model;
 using System.Collections;
+using System.Threading.Channels;
 
 namespace RTD.Excel
 {
@@ -31,8 +32,26 @@ namespace RTD.Excel
                              .Select(_ => DateTime.Now.ToString("HH:mm:ss"));
         }
 
-        [ExcelFunction(Description = "Provides a ticking clock")]
-        public static object teste_Rx()
+        [ExcelFunction(Name = "TesteUpload")]
+        public static object UploadAsset(string endpoint)
+        {
+            //string endpointDataId = XlCall.RTD(SignalRServer.ServerProgId, null, endpoint).ToString();
+            //return endpointDataId;
+
+            Asset asset = new Asset() { Endpoint = "teste", PublicationID = "testeID", Payload = "teste"};
+            string json = JsonConvert.SerializeObject(asset);
+
+            var cancellationTokenSource = new CancellationTokenSource();
+            Upload upload = new Upload();
+            upload.UploadAssetAsByteArray(json, false, cancellationTokenSource.Token);
+
+            return "ok";
+        }
+
+        #region Download
+
+        [ExcelFunction(Description = "Teste Download")]
+        public static object TesteDownload()
         {
             return ArrayResizer2.Resize(GetObservableTeste().Result);
         }
@@ -40,7 +59,7 @@ namespace RTD.Excel
         static async Task<object[,]> GetObservableTeste()
         {
             HubConnection connection = new HubConnectionBuilder()
-                .WithUrl("https://localhost:44328/uploadhub")
+                .WithUrl("https://localhost:44328/downloadhub")
                 .WithAutomaticReconnect()
                 .ConfigureLogging(logging =>
                 {
@@ -68,15 +87,6 @@ namespace RTD.Excel
                     notificacao += DecodeBase64(System.Text.Encoding.ASCII, notificacaoParte.ToString());
                 }
             }
-
-
-            //connection.On<string>("addFullMessage", (notificacao) =>
-            //{
-            //    RTD.Excel.Model.AssetNotificacao assetNotificacao =
-            //        JsonConvert.DeserializeObject<Dictionary<string, RTD.Excel.Model.AssetNotificacao>>(notificacao).ElementAt(0).Value;
-
-
-            //});
 
             RTD.Excel.Model.AssetNotificacao assetNotificacao =
                     JsonConvert.DeserializeObject<Dictionary<string, RTD.Excel.Model.AssetNotificacao>>(notificacao).ElementAt(0).Value;
@@ -159,5 +169,7 @@ namespace RTD.Excel
                 return obj;
             }
         }
+
+        #endregion
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -8,8 +9,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using ExcelDna.Integration;
 using ExcelDna.Integration.Rtd;
+using Newtonsoft.Json;
 
-namespace RTD.Excel1
+namespace RTD.Excel
 {
     [ComVisible(true)]                   // Required since the default template puts [assembly:ComVisible(false)] in the AssemblyInfo.cs
     [ProgId(SignalRServer.ServerProgId)]     //  If ProgId is not specified, change the XlCall.RTD call in the wrapper to use namespace + type name (the default ProgId)
@@ -21,7 +23,7 @@ namespace RTD.Excel1
         public SignalRServer()
         {
             _connection = new HubConnectionBuilder()
-                .WithUrl("https://localhost:5001/hub/chat")
+                .WithUrl("https://localhost:44328/uploadhub")
                 .WithAutomaticReconnect()
                 .ConfigureLogging(logging =>
                 {
@@ -36,19 +38,27 @@ namespace RTD.Excel1
 
             _connection.StartAsync();
 
-            _connection.On<string>("addMessage", (endpointDataId) =>
+            //_connection.On<string>("addMessage", (endpointDataId) =>
+            //{
+            //    //var newMessage = $"{message}";
+            //    foreach (Topic topic in _topics)
+            //    {
+            //        topic.UpdateValue(endpointDataId);
+            //    }
+            //});
+
+            _connection.On<string>("addFullMessage", (notificacao) =>
             {
-                //var newMessage = $"{message}";
-                foreach (Topic topic in _topics)
-                {
-                    topic.UpdateValue(endpointDataId);
-                }
+                RTD.Excel.Model.AssetNotificacao assetNotificacao =
+                    JsonConvert.DeserializeObject<Dictionary<string, RTD.Excel.Model.AssetNotificacao>>(notificacao).ElementAt(0).Value;
+
+
             });
         }
 
         // Using a System.Threading.Time which invokes the callback on a ThreadPool thread 
         // (normally that would be dangeours for an RTD server, but ExcelRtdServer is thread-safe)
-       Timer _timer;
+        Timer _timer;
         List<Topic> _topics;
 
         protected override bool ServerStart()

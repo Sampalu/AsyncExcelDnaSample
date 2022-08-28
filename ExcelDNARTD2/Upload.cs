@@ -1,20 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using System.Threading;
 using Newtonsoft.Json;
 using RTD.Excel.Model;
+using Microsoft.AspNetCore.SignalR.Client;
+using System.Reactive.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace RTD.Excel
 {
     public class Upload
     {
-        public ChannelReader<object> UploadAssetAsByteArray(string filePath, bool throwException, CancellationToken cancellationToken)
+        public async Task UploadAssetAsByteArray(string json, bool throwException, CancellationToken cancellationToken)
         {
-            var json = "";// JsonFilesRepo.Files["ativo.json"];
+            HubConnection connection = new HubConnectionBuilder()
+                .WithUrl("https://localhost:44328/uploadhub")
+                .WithAutomaticReconnect()
+                .ConfigureLogging(logging =>
+                {
+                    // Log to the Console
+                    logging.AddDebug();
+
+                    logging.SetMinimumLevel(LogLevel.Information);
+                    logging.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Debug);
+                    logging.AddFilter("Microsoft.AspNetCore.Http.Connections", LogLevel.Debug);
+                })
+                .Build();
+
+            await connection.StartAsync();
 
             var asset = JsonConvert.DeserializeObject<Asset>(json);
 
@@ -26,8 +42,8 @@ namespace RTD.Excel
             };
 
             var channel = Channel.CreateUnbounded<object>();
+            await connection.SendAsync("UploadStream", channel.Reader);
             _ = WriteToChannelAsByteArray(channel.Writer, dicionario, throwException, cancellationToken);
-            return channel.Reader;
         }
 
         private async Task WriteToChannelAsByteArray(ChannelWriter<object> writer, Dictionary<string, AssetNotificacao> dicionario, bool throwException, CancellationToken cancellationToken)
@@ -65,7 +81,7 @@ namespace RTD.Excel
                         return;
                     }
                     //Logger.LogInformation($"chunk sent: {Convert.ToBase64String(b)}");
-                    await writer.WriteAsync(b, cancellationToken);
+                    await writer.WriteAsync(Convert.ToBase64String(b), cancellationToken);
                     countOfChunks++;
                 }
                 //Logger.LogInformation($"Upstream: Total {numOfChunks} chunks written to channel");
