@@ -1,5 +1,6 @@
 ﻿using ExcelDna.Integration;
 using System;
+using System.Threading.Tasks;
 
 namespace RTD.Excel
 {
